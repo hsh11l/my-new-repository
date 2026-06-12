@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vertex — Login / Sign Up</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f3;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      color: #111;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1.75rem;
+    }
+
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: #111;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .logo-name {
+      font-size: 17px;
+      font-weight: 600;
+      color: #111;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+
+    .tab {
+      flex: 1;
+      background: none;
+      border: none;
+      padding: 0.75rem 0;
+      font-size: 15px;
+      font-weight: 400;
+      color: #888;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .tab.active {
+      font-weight: 600;
+      color: #111;
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0; right: 0;
+      height: 2px;
+      background: #111;
+      border-radius: 2px 2px 0 0;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .field { margin-bottom: 1rem; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 5px;
+    }
+
+    input[type=text],
+    input[type=email],
+    input[type=password] {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+      height: 40px;
+      background: #fff;
+      color: #111;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus {
+      border-color: #999;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.07);
+    }
+
+    .name-row { display: flex; gap: 10px; }
+    .name-row .field { flex: 1; }
+
+    .forgot {
+      font-size: 12px;
+      color: #888;
+      text-align: right;
+      margin-top: -6px;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .forgot:hover { color: #111; }
+
+    .submit-btn {
+      width: 100%;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      background: #111;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-top: 0.25rem;
+    }
+
+    .submit-btn:hover { opacity: 0.85; }
+    .submit-btn:active { transform: scale(0.98); }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 1.25rem 0;
+      font-size: 12px;
+      color: #bbb;
+    }
+
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(0,0,0,0.08);
+    }
+
+    .social-btn {
+      width: 100%;
+      height: 40px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      color: #111;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s;
+      margin-bottom: 8px;
+    }
+
+    .social-btn:hover { background: #f5f5f3; }
+
+    .terms {
+      font-size: 11px;
+      color: #aaa;
+      text-align: center;
+      margin-top: 1.25rem;
+      line-height: 1.6;
+    }
+
+    .terms a {
+      color: #777;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      cursor: pointer;
+    }
+
+    .password-wrap { position: relative; }
+
+    .toggle-pw {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #bbb;
+      font-size: 16px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .toggle-pw:hover { color: #777; }
+
+    input[type=password].padded,
+    input[type=text].padded {
+      padding-right: 36px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #1a1a1a; color: #eee; }
+      .card { background: #222; border-color: rgba(255,255,255,0.1); box-shadow: none; }
+      .logo-name, .tab.active { color: #eee; }
+      .tab.active::after { background: #eee; }
+      input[type=text], input[type=email], input[type=password] {
+        background: #2a2a2a; border-color: #444; color: #eee;
+      }
+      input:focus { border-color: #888; box-shadow: 0 0 0 3px rgba(255,255,255,0.06); }
+      .submit-btn { background: #eee; color: #111; }
+      .social-btn { background: #2a2a2a; border-color: #444; color: #eee; }
+      .social-btn:hover { background: #333; }
+      .tabs { border-bottom-color: rgba(255,255,255,0.1); }
+      .tab.active::after { background: #eee; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+
+    <div class="logo">
+      <div class="logo-icon"><i class="ti ti-bolt"></i></div>
+      <span class="logo-name">Vertex</span>
+    </div>
+
+    <div class="tabs">
+      <button class="tab" id="tab-login" onclick="switchTab('login')">Log in</button>
+      <button class="tab" id="tab-signup" onclick="switchTab('signup')">Sign up</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login" class="panel">
+      <div class="field">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label for="login-pw">Password</label>
+        <div class="password-wrap">
+          <input type="password" id="login-pw" class="padded" placeholder="••••••••" />
+          <button class="toggle-pw" onclick="togglePw('login-pw', this)" aria-label="Show password">
+            <i class="ti ti-eye"></i>
+          </button>
+        </div>
+      </div>
+      <div class="forgot">Forgot password?</div>
+      <button class="submit-btn">Log in</button>
+      <div class="divider">or</div>
+      <button class="social-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+      <button class="social-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        Continue with GitHub
+      </button>
+    </div>
+
+    <!-- SIGN UP -->
+    <div id="signup" class="panel">
+      <div class="name-row">
+        <div class="field">
+          <label for="su-first">First name</label>
+          <input type="text" id="su-first" placeholder="Jane" />
+        </div>
+        <div class="field">
+          <label for="su-last">Last name</label>
+          <input type="text" id="su-last" placeholder="Smith" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="su-email">Email</label>
+        <input type="email" id="su-email" placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label for="su-pw">Password</label>
+        <div class="password-wrap">
+          <input type="password" id="su-pw" class="padded" placeholder="Min. 8 characters" />
+          <button class="toggle-pw" onclick="togglePw('su-pw', this)" aria-label="Show password">
+            <i class="ti ti-eye"></i>
+          </button>
+        </div>
+      </div>
+      <button class="submit-btn" style="margin-top:0.5rem">Create account</button>
+      <div class="divider">or</div>
+      <button class="social-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Sign up with Google
+      </button>
+      <button class="social-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        Sign up with GitHub
+      </button>
+      <p class="terms">By creating an account you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+    </div>
+
+  </div>
+
+  <script>
+    // Switch tab and update the URL hash
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
+      // Update the hash without scrolling
+      history.replaceState(null, '', '#' + tab);
+    }
+
+    // On load, read the hash and activate the right tab
+    function initFromHash() {
+      const hash = window.location.hash.replace('#', '');
+      const valid = ['login', 'signup'];
+      switchTab(valid.includes(hash) ? hash : 'login');
+    }
+
+    // Also react if the user hits Back/Forward
+    window.addEventListener('hashchange', initFromHash);
+    initFromHash();
+
+    function togglePw(id, btn) {
+      const input = document.getElementById(id);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'ti ti-eye-off';
+        btn.setAttribute('aria-label', 'Hide password');
+      } else {
+        input.type = 'password';
+        icon.className = 'ti ti-eye';
+        btn.setAttribute('aria-label', 'Show password');
+      }
+    }
+  </script>
+
+</body>
+</html>
