@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Mini Minecraft</title>
+<style>
+body { margin:0; overflow:hidden; }
+canvas { display:block; }
+#crosshair{
+position:absolute;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%);
+font-size:24px;
+color:white;
+pointer-events:none;
+}
+</style>
+</head>
+<body>
+<div id="crosshair">+</div>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+import { PointerLockControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/PointerLockControls.js";
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+
+const camera = new THREE.PerspectiveCamera(
+75,
+window.innerWidth/window.innerHeight,
+0.1,
+1000
+);
+
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(10,20,10);
+scene.add(light);
+
+scene.add(new THREE.AmbientLight(0xffffff,0.5));
+
+const controls = new PointerLockControls(camera, document.body);
+
+document.addEventListener("click", () => {
+controls.lock();
+});
+
+scene.add(controls.getObject());
+
+camera.position.set(0,2,5);
+
+const blockGeo = new THREE.BoxGeometry(1,1,1);
+const blockMat = new THREE.MeshLambertMaterial({
+color:0x55aa55
+});
+
+const blocks = [];
+
+function addBlock(x,y,z){
+const cube = new THREE.Mesh(blockGeo, blockMat);
+cube.position.set(x,y,z);
+scene.add(cube);
+blocks.push(cube);
+}
+
+for(let x=-20;x<20;x++){
+for(let z=-20;z<20;z++){
+addBlock(x,0,z);
+}
+}
+
+const raycaster = new THREE.Raycaster();
+
+window.addEventListener("mousedown",(e)=>{
+
+raycaster.setFromCamera(
+new THREE.Vector2(0,0),
+camera
+);
+
+const hit = raycaster.intersectObjects(blocks);
+
+if(hit.length===0) return;
+
+const block = hit[0].object;
+
+if(e.button===0){
+
+if(block.position.y>0){
+scene.remove(block);
+blocks.splice(blocks.indexOf(block),1);
+}
+
+}
+
+if(e.button===2){
+
+const normal = hit[0].face.normal.clone();
+
+const pos = block.position.clone().add(normal);
+
+addBlock(pos.x,pos.y,pos.z);
+}
+
+});
+
+window.addEventListener("contextmenu",e=>e.preventDefault());
+
+const keys = {};
+
+window.addEventListener("keydown",e=>{
+keys[e.key.toLowerCase()] = true;
+});
+
+window.addEventListener("keyup",e=>{
+keys[e.key.toLowerCase()] = false;
+});
+
+function animate(){
+
+requestAnimationFrame(animate);
+
+const speed = 0.1;
+
+if(keys["w"]) controls.moveForward(speed);
+if(keys["s"]) controls.moveForward(-speed);
+if(keys["a"]) controls.moveRight(-speed);
+if(keys["d"]) controls.moveRight(speed);
+
+renderer.render(scene,camera);
+}
+
+animate();
+
+window.addEventListener("resize",()=>{
+camera.aspect = window.innerWidth/window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+</body>
+</html>
