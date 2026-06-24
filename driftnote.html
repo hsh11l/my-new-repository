@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Driftnote</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #F3F1EA; font-family: Georgia, serif; min-height: 100vh; }
+  #app { max-width: 580px; margin: 0 auto; padding: 28px 18px 80px; }
+
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  header h1 { font-size: 24px; color: #1F2A24; }
+  #db-status { font-family: system-ui, sans-serif; font-size: 11px; color: #6B7268; margin-left: auto; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .card { background: #fff; border: 1px solid #E3E0D4; border-radius: 14px; padding: 18px; }
+  #composer { margin-bottom: 22px; }
+  .composer-row { display: flex; gap: 12px; }
+  #composer textarea { flex: 1; resize: none; border: none; outline: none; font-family: system-ui, sans-serif; font-size: 15px; color: #1F2A24; background: transparent; line-height: 1.5; }
+  .composer-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .composer-footer span { font-family: system-ui, sans-serif; font-size: 12px; color: #6B7268; }
+
+  .btn-post { font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; color: #fff; background: #2F5D50; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+  .btn-post:disabled { background: #A9B5AE; cursor: default; }
+  .btn-refresh { font-family: system-ui, sans-serif; font-size: 13px; color: #2F5D50; background: none; border: 1px solid #E3E0D4; border-radius: 8px; padding: 8px 20px; cursor: pointer; display: block; margin: 24px auto 0; }
+  .btn-reply { font-family: system-ui, sans-serif; font-size: 13px; font-weight: 600; color: #2F5D50; background: #E4EDE9; border: none; border-radius: 8px; padding: 0 12px; cursor: pointer; }
+
+  #feed { display: flex; flex-direction: column; gap: 16px; }
+  .post-inner { display: flex; gap: 12px; }
+  .post-body { flex: 1; min-width: 0; }
+  .post-meta { font-family: system-ui, sans-serif; font-size: 13.5px; margin-bottom: 6px; }
+  .post-meta .name { font-weight: 600; color: #1F2A24; }
+  .post-meta .handle, .post-meta .time { color: #6B7268; }
+  .post-text { font-size: 16px; line-height: 1.65; color: #1F2A24; margin-bottom: 12px; }
+  .post-actions { display: flex; gap: 18px; }
+
+  .btn-like, .btn-comment { display: flex; align-items: center; gap: 6px; background: transparent; border: none; cursor: pointer; font-family: system-ui, sans-serif; font-size: 13px; font-weight: 500; color: #6B7268; }
+  .btn-like.liked { color: #C9762C; }
+  .btn-comment.open { color: #2F5D50; }
+
+  .comments-section { margin-top: 14px; border-top: 1px solid #E3E0D4; padding-top: 12px; display: none; }
+  .comments-section.open { display: block; }
+  .comment-item { display: flex; gap: 8px; margin-bottom: 10px; }
+  .comment-name { font-family: system-ui, sans-serif; font-size: 13.5px; font-weight: 600; color: #1F2A24; }
+  .comment-text { font-family: system-ui, sans-serif; font-size: 13.5px; color: #6B7268; }
+  .comment-form { display: flex; gap: 8px; margin-top: 8px; }
+  .comment-form input { flex: 1; font-family: system-ui, sans-serif; font-size: 13px; padding: 7px 10px; border-radius: 8px; border: 1px solid #E3E0D4; outline: none; }
+
+  .avatar { border-radius: 50%; background: #E4EDE9; color: #2F5D50; display: flex; align-items: center; justify-content: center; font-family: system-ui, sans-serif; font-weight: 600; flex-shrink: 0; }
+
+  #error-box { display: none; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-family: system-ui, sans-serif; font-size: 13px; color: #B91C1C; }
+  #loading-msg { font-family: system-ui, sans-serif; font-size: 14px; color: #6B7268; text-align: center; padding: 32px 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>✦ Driftnote</h1>
+    <span id="db-status">connecting…</span>
+  </header>
+
+  <div id="error-box"></div>
+  <div id="loading-msg">Loading feed…</div>
+
+  <div class="card" id="composer">
+    <div class="composer-row">
+      <div class="avatar" style="width:40px;height:40px;font-size:15px;">YO</div>
+      <textarea id="compose-input" rows="2" placeholder="What's settling in your mind today?"></textarea>
+    </div>
+    <div class="composer-footer">
+      <span>↵ Enter to post</span>
+      <button class="btn-post" id="post-btn" onclick="submitPost()">Post</button>
+    </div>
+  </div>
+
+  <div id="feed"></div>
+  <button class="btn-refresh" onclick="loadPosts()">↻ Refresh</button>
+</div>
+
+<script>
+  // ─── Your Cloudflare Worker URL ──────────────────────────────────────────────
+  const WORKER_URL = "https://driftnote.your-subdomain.workers.dev";
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const likedIds = new Set();
+  const commentCache = {};
+
+  async function sql(query, args = []) {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sql: query, args }),
+    });
+    const data = await res.json();
+    const r = data.results?.[0];
+    if (!r || r.type === "error") throw new Error(r?.error?.message || "Query error");
+    const result = r.response.result;
+    const cols = result.cols.map(c => c.name);
+    return result.rows.map(row => {
+      const obj = {};
+      cols.forEach((col, i) => obj[col] = row[i]?.value ?? null);
+      return obj;
+    });
+  }
+
+  async function init() {
+    try {
+      await sql(`CREATE TABLE IF NOT EXISTS posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL, handle TEXT NOT NULL, text TEXT NOT NULL,
+        likes INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now'))
+      )`);
+      await sql(`CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        post_id INTEGER NOT NULL, name TEXT NOT NULL, text TEXT NOT NULL,
+        created_at TEXT DEFAULT (datetime('now'))
+      )`);
+      document.getElementById("db-status").textContent = "● turso via worker";
+      await loadPosts();
+    } catch (e) {
+      showError("Could not connect: " + e.message);
+      document.getElementById("loading-msg").style.display = "none";
+      document.getElementById("db-status").textContent = "⚠ error";
+    }
+  }
+
+  async function loadPosts() {
+    document.getElementById("loading-msg").style.display = "block";
+    document.getElementById("feed").innerHTML = "";
+    try {
+      const posts = await sql(`
+        SELECT p.id, p.name, p.handle, p.text, p.likes, p.created_at,
+               COUNT(c.id) AS comment_count
+        FROM posts p LEFT JOIN comments c ON c.post_id = p.id
+        GROUP BY p.id ORDER BY p.created_at DESC LIMIT 50
+      `);
+      document.getElementById("loading-msg").style.display = "none";
+      if (posts.length === 0) {
+        document.getElementById("loading-msg").textContent = "No posts yet. Write the first one.";
+        document.getElementById("loading-msg").style.display = "block";
+        return;
+      }
+      posts.forEach(p => renderPost(p));
+    } catch (e) {
+      showError(e.message);
+      document.getElementById("loading-msg").style.display = "none";
+    }
+  }
+
+  function renderPost(p) {
+    const id = Number(p.id);
+    const liked = likedIds.has(id);
+    const div = document.createElement("div");
+    div.className = "card post";
+    div.id = "post-" + id;
+    div.innerHTML = `
+      <div class="post-inner">
+        ${avatar(p.name, 40)}
+        <div class="post-body">
+          <div class="post-meta">
+            <span class="name">${esc(p.name)}</span>
+            <span class="handle"> ${esc(p.handle)}</span>
+            <span class="time"> · ${timeAgo(p.created_at)}</span>
+          </div>
+          <p class="post-text">${esc(p.text)}</p>
+          <div class="post-actions">
+            <button class="btn-like ${liked ? "liked" : ""}" id="like-${id}" onclick="toggleLike(${id}, ${p.likes})">
+              <span>${liked ? "♥" : "♡"}</span>
+              <span id="like-count-${id}">${p.likes}</span>
+            </button>
+            <button class="btn-comment" id="cmt-btn-${id}" onclick="toggleComments(${id})">
+              <span>💬</span>
+              <span id="cmt-count-${id}">${p.comment_count}</span>
+            </button>
+          </div>
+          <div class="comments-section" id="comments-${id}">
+            <div id="comments-list-${id}"></div>
+            <div class="comment-form">
+              <input id="comment-input-${id}" placeholder="Add a comment…" onkeydown="if(event.key==='Enter') submitComment(${id})" />
+              <button class="btn-reply" onclick="submitComment(${id})">Reply</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById("feed").appendChild(div);
+  }
+
+  async function toggleLike(id, currentLikes) {
+    const liked = likedIds.has(id);
+    liked ? likedIds.delete(id) : likedIds.add(id);
+    const delta = liked ? -1 : 1;
+    const newCount = Number(currentLikes) + delta;
+    const btn = document.getElementById("like-" + id);
+    btn.querySelector("span").textContent = liked ? "♡" : "♥";
+    btn.classList.toggle("liked", !liked);
+    document.getElementById("like-count-" + id).textContent = newCount;
+    btn.onclick = () => toggleLike(id, newCount);
+    await sql("UPDATE posts SET likes = likes + ? WHERE id = ?", [delta, id]);
+  }
+
+  async function toggleComments(postId) {
+    const section = document.getElementById("comments-" + postId);
+    const btn = document.getElementById("cmt-btn-" + postId);
+    const isOpen = section.classList.contains("open");
+    section.classList.toggle("open", !isOpen);
+    btn.classList.toggle("open", !isOpen);
+    if (!isOpen && !commentCache[postId]) await fetchComments(postId);
+  }
+
+  async function fetchComments(postId) {
+    const list = document.getElementById("comments-list-" + postId);
+    list.innerHTML = `<p style="font-family:system-ui;font-size:13px;color:#6B7268">Loading…</p>`;
+    const rows = await sql("SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC", [postId]);
+    commentCache[postId] = rows;
+    renderComments(postId, rows);
+  }
+
+  function renderComments(postId, rows) {
+    document.getElementById("comments-list-" + postId).innerHTML =
+      rows.map(c => `
+        <div class="comment-item">
+          ${avatar(c.name, 26)}
+          <div><span class="comment-name">${esc(c.name)} </span><span class="comment-text">${esc(c.text)}</span></div>
+        </div>`).join("");
+  }
+
+  async function submitComment(postId) {
+    const input = document.getElementById("comment-input-" + postId);
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    await sql("INSERT INTO comments (post_id, name, text) VALUES (?, ?, ?)", [postId, "You", text]);
+    const rows = await sql("SELECT * FROM comments WHERE post_id = ? ORDER BY created_at ASC", [postId]);
+    commentCache[postId] = rows;
+    renderComments(postId, rows);
+    const el = document.getElementById("cmt-count-" + postId);
+    el.textContent = Number(el.textContent) + 1;
+  }
+
+  async function submitPost() {
+    const input = document.getElementById("compose-input");
+    const text = input.value.trim();
+    if (!text) return;
+    const btn = document.getElementById("post-btn");
+    btn.disabled = true; btn.textContent = "Posting…";
+    try {
+      await sql("INSERT INTO posts (name, handle, text) VALUES (?, ?, ?)", ["You", "@you", text]);
+      input.value = "";
+      await loadPosts();
+    } finally { btn.disabled = false; btn.textContent = "Post"; }
+  }
+
+  document.getElementById("compose-input").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitPost(); }
+  });
+
+  function avatar(name, size) {
+    const letters = String(name).split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
+    return `<div class="avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.36)}px">${letters}</div>`;
+  }
+
+  function esc(str) {
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function timeAgo(ts) {
+    const diff = (Date.now() - new Date(ts + "Z").getTime()) / 1000;
+    if (diff < 60) return "just now";
+    if (diff < 3600) return Math.floor(diff / 60) + "m";
+    if (diff < 86400) return Math.floor(diff / 3600) + "h";
+    return Math.floor(diff / 86400) + "d";
+  }
+
+  function showError(msg) {
+    const box = document.getElementById("error-box");
+    box.textContent = msg;
+    box.style.display = "block";
+  }
+
+  init();
+</script>
+</body>
+</html>
