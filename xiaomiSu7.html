@@ -1,4 +1,4 @@
-u
+<!DOCTYPE html
 <html lang="en">
 <head>
 <meta charset="UTF-8"
@@ -619,4 +619,277 @@ loader.load(
 usually we need a car.
 // Wait, since I cannot browse
 
-Sketchfa
+Sketchfab dynamically in code
+
+, I will use a
+
+reliable car model URL from KhronosGroup GL
+
+TF sample models:
+
+// Actually, let's
+
+use a known working sports car GLTF model URL
+
+:
+'https://
+
+raw.githubusercontent.com/Kh
+
+ronosGroup/glTF-Sample-Models/master/2.0/ToyCar/glTF-Binary/ToyCar.gl
+
+b',
+
+(gltf) =>
+{
+carModel = gltf.scene;
+
+carModel.scale.set(1.5,
+
+1.5,
+
+1.5);
+
+carModel.position.y =
+
+0.0;
+
+carModel.rotation.y
+
+= Math.PI; //
+
+Face the front
+
+carModel.traverse((child) => {
+if (child.isMesh) {
+child.castShadow = true;
+child.receiveShadow = true;
+
+// Override
+materials to make it look
+
+like the SU7 Ultra in Lighting Yellow
+// Since ToyCar has specific meshes, we apply the yellow paint to the body
+if (child.material.name === 'toy_car' || child.material.name === 'paint' || child.material.name.includes('body')) {
+child.material = paintMaterial;
+} else if (child.material.name.includes('glass') || child.material.name.includes('window')) {
+child.material = glassMaterial;
+} else if (child.material.name.includes('tire') || child.material.name.includes('wheel')) {
+child.material = tireMaterial;
+} else if (child.material.name.includes('headlight')) {
+child.material = headlightMaterial;
+} else if (child.material.name.includes('taillight')) {
+child.material = taillightMaterial;
+} else {
+// Fallback for any other parts to be painted yellow to ensure the car is visible and colorful
+child.material = paintMaterial;
+}
+}
+});
+
+scene.add(carModel);
+
+document.getElementById('loading').classList.add('hide');
+showToast('Lighting Yellow · Ready');
+},
+(xhr) => {
+// Loading progress
+const percent = (xhr.loaded
+/ xhr.total * 100).toFixed(0);
+document.querySelector('.loading-text').textContent = Loading 3D Model... ${percent}%;
+},
+(error) => {
+console.error('Error loading model:', error);
+document.querySelector('.loading-text').textContent = 'Model failed to load. Check
+
+connection.';
+}
+);
+
+// Particles
+const particleCount = 80;
+const particleGeo = new
+THREE.BufferGeometry();
+const pPos = new Float32Array(particleCount * 3);
+const pVel = new Float32Array(particleCount * 3);
+for (let
+
+i = 0; i < particleCount; i++) {
+p
+
+Pos[i * 3] = (Math.random() - 0.
+
+18;
+pPos[i
+3 + 1] = Math.random
+() * 6 + 0.5;
+pPos[i * 3 + 2] = (Math.random
+
+() - 0.5) * 18
+
+;
+pVel[i
+
+3] = (Math.random() -
+0.5) * 0.002
+
+;
+pVel[i * 3 + 1] = Math.random() * 0.003 + 0.001;
+pVel[i * 3 + 2] = (Math.random() - 0.
+
+0.002;
+}
+particleGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+const particles = new THREE.Points(
+particleGeo,
+
+new THREE.PointsMaterial({ color: 0xffb530, size: 0.04, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending,
+
+depthWrite: false })
+
+);
+scene.add(particles);
+
+// ============================================================
+// UI
+State & Controls
+// ============================================================
+let autoRotate = false;
+let headlightsOn = true;
+let light
+
+Mode = 0;
+
+const btnRotate = document.getElementById('btn-rotate');
+const btnColor = document.getElementById('
+btn-color');
+const
+
+btnLight = document.getElementById
+
+('btn-light');
+const btnHeadlights = document.getElementById('btn-head
+
+lights');
+
+btnRotate.addEventListener('click', () => {
+autoRotate
+= !autoRotate;
+btnRotate.classList.toggle
+
+('active', autoRotate
+
+);
+showToast(autoRotate ? 'Auto orbit engaged' : 'Manual orbit');
+});
+
+const paintColors = [
+{ hex: 0xffb800, name: 'Lighting Yellow' },
+{ hex: 0xd4081c, name: 'Pearl Red' },
+{ hex: 0x0a0a0a, name: 'Phantom Black' },
+{ hex: 0xe8e8ec, name: 'Pearl White' },
+{ hex: 0x1a5d3a, name: 'Verdant Green' },
+{ hex: 0x2a4d8f, name: 'Aurora Blue' }
+];
+let paintIdx = 0;
+btnColor.addEventListener('click', () => {
+paintIdx = (paintIdx + 1) % paintColors.length;
+const c = paintColors[paintIdx];
+paintMaterial.color.setHex(c.hex);
+showToast(c.name);
+});
+
+btnLight.addEventListener('click', () => {
+lightMode = (lightMode + 1) % 3;
+const modes = ['Cinematic', 'Studio White', 'Sunset Glow'];
+if (lightMode === 0) {
+keyLight.color.setHex(0xfff5e0); keyLight.intensity = 2.5;
+rimLight.color.setHex(0xffb530); rimLight.intensity = 1.5;
+fillLight.color.setHex(0x88aaff); fillLight.intensity = 0.6;
+} else if (lightMode === 1) {
+keyLight.color.setHex(0xffffff); keyLight.intensity = 3.0;
+rimLight.color.setHex(0xffffff); rimLight.intensity = 2.0;
+fillLight.color.setHex(0xffffff); fillLight.intensity = 1.0;
+} else {
+keyLight.color.setHex(0xff7a30); keyLight.intensity = 2.8;
+rimLight.color.setHex(0xff3060); rimLight.intensity = 2.0;
+fillLight.color.setHex(0x3060ff); fillLight.intensity = 0.8;
+}
+btnLight.textContent = modes[lightMode];
+showToast(modes[lightMode] + ' lighting');
+});
+
+btnHeadlights.addEventListener('click', () => {
+headlightsOn = !headlightsOn;
+btnHeadlights.classList.toggle('active', !headlightsOn);
+headlightMaterial.emissiveIntensity = headlightsOn ? 1.5 : 0.05;
+taillightMaterial.emissiveIntensity = headlightsOn ? 2.0 : 0.4;
+showToast(headlightsOn ? 'Headlights on' : 'Headlights off');
+});
+btnHeadlights.classList.add('active');
+
+function showToast(msg) {
+const t = document.getElementById('toast');
+t.textContent = msg;
+t.classList.add('show');
+clearTimeout(t._timer);
+t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+window.addEventListener('resize', () => {
+camera.aspect = window.innerWidth / window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+window.addEventListener('pointermove', (e) => {
+mouse.tx = (e.clientX / window.innerWidth - 0.5) * 2;
+mouse.ty = (e.clientY / window.innerHeight - 0.5) * 2;
+});
+
+// ============================================================
+// Animation Loop
+// ============================================================
+const clock = new THREE.Clock();
+
+function animate() {
+requestAnimationFrame(animate);
+const dt = clock.getDelta();
+const t = clock.getElapsedTime();
+
+if (autoRotate && carModel) {
+carModel.rotation.y += dt * 0.35;
+}
+
+mouse.x += (mouse.tx - mouse.x) * 0.04;
+mouse.y += (mouse.ty - mouse.y) * 0.04;
+camera.position.x += (7 + mouse.x * 0.4 - camera.position.x) * 0.02;
+camera.position.y += (3.5 - mouse.y * 0.3 - camera.position.y) * 0.02;
+camera.lookAt(0, 0.5, 0);
+
+// Particles drift
+const posAttr = particles.geometry.attributes.position;
+for (let i = 0; i < particleCount; i++) {
+posAttr.array[i * 3] += pVel[i * 3];
+posAttr.array[i * 3 + 1] += pVel[i * 3 + 1];
+posAttr.array[i * 3 + 2] += pVel[i * 3 + 2];
+if (posAttr.array[i * 3 + 1] > 7) {
+posAttr.array[i * 3 + 1] = 0.5;
+posAttr.array[i * 3] = (Math.random() - 0.5) * 18;
+posAttr.array[i * 3 + 2] = (Math.random() - 0.5) * 18;
+}
+}
+posAttr.needsUpdate = true;
+
+if (headlightsOn) headlightMaterial.emissiveIntensity = 1.4 + Math.sin(t * 8) * 0.08;
+
+controls.update();
+renderer.render(scene, camera);
+}
+
+animate();
+</script>
+
+</body>
+</html>
